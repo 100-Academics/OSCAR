@@ -1,14 +1,15 @@
 import { AIProvider, AgentInfo } from "../types/index.js";
-import { GitHubModelsProvider } from "./githubModels.js";
+import { GitHubCopilotProvider } from "./githubCopilot.js";
 import { OpenAIProvider } from "./openai.js";
 import { AnthropicProvider } from "./anthropic.js";
 
 /**
  * Central registry of all AI providers.
+ * GitHub Copilot is listed first and is the default for OSCAR.
  * To add a new provider: instantiate it here and add to the `providers` array.
  */
 const providers: AIProvider[] = [
-  new GitHubModelsProvider(),
+  new GitHubCopilotProvider(), // default — free for students via GitHub Education
   new OpenAIProvider(),
   new AnthropicProvider(),
 ];
