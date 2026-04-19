@@ -23,7 +23,7 @@ function buildCorsOrigin(): string[] | false {
     return false;
   }
   // Validate each entry: must be a well-formed http/https origin, no path/query.
-  const originPattern = /^https?:\/\/[a-zA-Z0-9\-._]+(:\d{1,5})?$/;
+  const originPattern = /^https?:\/\/(?:\[[0-9a-fA-F:]+\]|[a-zA-Z0-9\-._]+)(:\d{1,5})?$/;
   const allowlist = raw
     .split(",")
     .map((o) => o.trim())
