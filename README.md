@@ -8,7 +8,7 @@ A bi-directional communication bridge that connects your Onshape Part Studio to 
 - **Receive responses** — FeatureScript snippets, design suggestions, documentation, review notes — rendered right in the tab
 - **Apply results** to your Onshape document with one click (FeatureScript execution, feature modifications)
 - **Pick your model** from a GitHub Copilot-style model selector in the top bar:
-  - GitHub Copilot models (GPT-4.1, GPT-4o, Claude 3.5/3.7 Sonnet, Gemini 2.0 Flash, o3-mini) — **free for students**
+  - GitHub Copilot models (including **GPT-5.3-Codex** agent, GPT-5.2-Codex, GPT-5.2, GPT-5.4 mini, GPT-5 mini, GPT-4.1, GPT-4o, Grok Code Fast 1, Claude Haiku 4.5, Gemini 3 Flash, Gemini 3.1 Pro, Gemini 2.5 Pro) — **free for students**
   - OpenAI (GPT-4.1, GPT-4o, o3)
   - Anthropic Claude (Sonnet, Opus)
 
@@ -111,7 +111,7 @@ server/
 ```jsonc
 // POST /api/chat
 {
-  "agentId": "github-copilot/gpt-4.1",
+  "agentId": "github-copilot/gpt-5.3-codex",
   "messages": [
     { "role": "user", "content": "Generate a FeatureScript extrude 25 mm" }
   ],
@@ -125,7 +125,7 @@ server/
 
 // Response
 {
-  "agentId": "github-copilot/gpt-4.1",
+  "agentId": "github-copilot/gpt-5.3-codex",
   "message": { "role": "assistant", "content": "Here is the FeatureScript…\n```json\n{\"actions\":[…]}\n```" },
   "actions": [
     {
@@ -177,6 +177,54 @@ The new provider and all its agents will automatically appear in the UI model pi
 
 ---
 
+## Install and use OSCAR inside Onshape (step-by-step)
+
+### A. Deploy OSCAR so Onshape can reach it
+
+1. Deploy the backend (`server/`) to a public HTTPS URL (example: `https://oscar-api.yourdomain.com`).
+2. Host `client/index.html` at a public HTTPS URL (example: `https://oscar-ui.yourdomain.com`).
+3. Set CORS in `server/.env`:
+
+```env
+ALLOWED_ORIGINS=https://oscar-ui.yourdomain.com,https://cad.onshape.com
+```
+
+4. Ensure your frontend points to your backend by adding this before the main script in `client/index.html`:
+
+```html
+<script>window.OSCAR_API_URL = "https://oscar-api.yourdomain.com";</script>
+```
+
+### B. Create an Onshape app
+
+1. Go to the Onshape Developer Portal: <https://dev-portal.onshape.com>.
+2. Create a new app (or edit an existing app).
+3. Add an OAuth client for your app (recommended for multi-user production use).
+4. Configure the app/tab URL to your hosted OSCAR UI (`https://oscar-ui.yourdomain.com`).
+5. Set redirect/callback URLs required by your OAuth configuration.
+6. Publish privately to your company/team or install it to your account for testing.
+
+> For local testing, you can use static API keys on the backend (`ONSHAPE_ACCESS_KEY` / `ONSHAPE_SECRET_KEY`) instead of full OAuth.
+
+### C. Add OSCAR to a document and use it
+
+1. Open an Onshape document and add the OSCAR app/tab.
+2. In OSCAR:
+   - Paste the current **Document ID**, **Workspace ID**, and **Element ID**
+   - Click **Load context**
+3. Pick a model from the top-right model picker (default is **GPT-5.3-Codex**).
+4. Ask for changes (for example, "Generate a FeatureScript fillet on selected edges").
+5. Review the response and proposed actions.
+6. Click **Apply to Onshape** to execute only the action(s) you approve.
+
+### D. Recommended model usage
+
+- **GPT-5.3-Codex** (default): best for agentic multi-step edits and implementation workflows
+- GPT-5.2-Codex: strong alternative for complex coding tasks
+- GPT-5.2 / GPT-4.1: balanced general reasoning
+- GPT-5 mini / GPT-5.4 mini / Gemini 3 Flash / Claude Haiku 4.5: fastest low-cost options
+- Gemini 3.1 Pro / Gemini 2.5 Pro: deep analysis and hard planning
+
 ## Embedding as an Onshape tab
 
 1. In Onshape, open **App Store** → **Manage apps** → **Add custom app**
@@ -195,7 +243,7 @@ The panel will appear as a tab in your Onshape document view.
 
 - **Secrets are server-side only.** The `GITHUB_TOKEN`, Onshape keys, and any AI provider keys are read from the server's environment — they are never sent to the browser.
 - The GitHub Copilot session token is exchanged server-side and cached in memory for ~30 minutes. It is never exposed to the client.
-- Validate and sanitize all `onshapeContext` inputs before forwarding to the Onshape API (the current implementation trusts the client for IDs; add auth middleware as needed for production).
+- `onshapeContext` document/workspace/element IDs are validated server-side as 24-character Onshape IDs before API calls; still add auth middleware and per-user authorization checks for production.
 - Set `ALLOWED_ORIGINS` in `.env` to restrict CORS in production.
 
 ---
