@@ -888,7 +888,9 @@ function escHtml(str) {
 
 /** Minimal markdown-like renderer for AI responses. */
 function renderMarkdown(text) {
-  // Protect code blocks first, then process inline
+  // 1. Extract fenced code blocks and escape their contents.
+  //    Replace with null-byte-delimited placeholders (null bytes survive
+  //    escHtml since only &, <, >, " are escaped).
   const blocks = [];
   let out = text.replace(/```(\w*)\n?([\s\S]*?)```/g, (_m, lang, code) => {
     const idx = blocks.length;
@@ -896,22 +898,27 @@ function renderMarkdown(text) {
     return `\x00BLOCK${idx}\x00`;
   });
 
-  // Inline code
-  out = out.replace(/`([^`]+)`/g, (_m, code) => `<code>${escHtml(code)}</code>`);
+  // 2. Escape ALL remaining text to neutralise any raw HTML from the AI.
+  //    Asterisks, backticks, and hash marks are not touched by escHtml,
+  //    so markdown patterns still match on the escaped output.
+  out = escHtml(out);
 
-  // Bold — escape the captured group to prevent XSS via user/AI content
-  out = out.replace(/\*\*(.+?)\*\*/g, (_m, match) => `<strong>${escHtml(match)}</strong>`);
-  // Italic
-  out = out.replace(/\*(.+?)\*/g, (_m, match) => `<em>${escHtml(match)}</em>`);
+  // 3. Inline code — content is already HTML-escaped; just wrap it.
+  out = out.replace(/`([^`]+)`/g, (_m, code) => `<code>${code}</code>`);
 
-  // Headers
-  out = out.replace(/^#{3} (.+)$/gm, (_m, match) => `<strong>${escHtml(match)}</strong>`);
-  out = out.replace(/^#{1,2} (.+)$/gm, (_m, match) => `<strong style="font-size:1.05em">${escHtml(match)}</strong>`);
+  // 4. Bold (content pre-escaped by step 2)
+  out = out.replace(/\*\*([\s\S]+?)\*\*/g, (_m, match) => `<strong>${match}</strong>`);
+  // 5. Italic — only single asterisks not adjacent to another asterisk
+  out = out.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, (_m, match) => `<em>${match}</em>`);
 
-  // Unordered lists
-  out = out.replace(/^[ \t]*[-*•] (.+)$/gm, (_m, match) => `• ${escHtml(match)}`);
+  // 6. Headers (content pre-escaped)
+  out = out.replace(/^#{3} (.+)$/gm, (_m, match) => `<strong>${match}</strong>`);
+  out = out.replace(/^#{1,2} (.+)$/gm, (_m, match) => `<strong style="font-size:1.05em">${match}</strong>`);
 
-  // Restore code blocks
+  // 7. Unordered lists (content pre-escaped)
+  out = out.replace(/^[ \t]*[-*•] (.+)$/gm, (_m, match) => `• ${match}`);
+
+  // 8. Restore code block placeholders.
   out = out.replace(/\x00BLOCK(\d+)\x00/g, (_m, i) => blocks[Number(i)]);
 
   return out;

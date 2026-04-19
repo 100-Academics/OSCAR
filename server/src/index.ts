@@ -11,28 +11,30 @@ const PORT = Number(process.env.PORT ?? 3000);
 // ── Middleware ──────────────────────────────────────────────────────────────
 
 /**
- * Build a safe CORS origin allowlist from the ALLOWED_ORIGINS env var.
+ * Build a validated CORS origin allowlist from the ALLOWED_ORIGINS env var.
  * Each entry must be a valid http/https URL origin (scheme + host + optional port).
- * Falls back to blocking cross-origin requests when the env var is not set,
- * so tokens and data are not inadvertently exposed to arbitrary origins in
- * production. Set ALLOWED_ORIGINS=* only for local development.
+ * Returns `false` (deny all cross-origin) when not configured.
+ * Explicit wildcard ("*") is NOT supported — set specific origins instead.
  */
-function buildCorsOrigin(): string | string[] | ((origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => void) {
+function buildCorsOrigin(): string[] | false {
   const raw = process.env.ALLOWED_ORIGINS;
   if (!raw || raw.trim() === "") {
-    // No origins configured — reject all cross-origin requests.
-    return [];
+    // No origins configured — block all cross-origin requests.
+    return false;
   }
-  if (raw.trim() === "*") {
-    // Explicit wildcard opt-in (development only).
-    return "*";
-  }
-  // Validate each entry: must be http:// or https:// origin (no path/query).
+  // Validate each entry: must be a well-formed http/https origin, no path/query.
   const originPattern = /^https?:\/\/[a-zA-Z0-9\-._]+(:\d{1,5})?$/;
   const allowlist = raw
     .split(",")
     .map((o) => o.trim())
     .filter((o) => originPattern.test(o));
+  if (allowlist.length === 0) {
+    console.warn(
+      "ALLOWED_ORIGINS was set but contained no valid http/https origins. " +
+        "Cross-origin requests will be blocked."
+    );
+    return false;
+  }
   return allowlist;
 }
 
