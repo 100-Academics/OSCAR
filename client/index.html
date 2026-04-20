@@ -720,7 +720,7 @@ const inputWid          = document.getElementById('inputWid');
 const inputEid          = document.getElementById('inputEid');
 
 const onshapeIdRegex = /^[a-f0-9]{24}$/i;
-const requiredOnshapePathSegments = 6; // /documents/{did}/w/{wid}/e/{eid}
+const onshapeContextSegmentCount = 6; // documents,did,w,wid,e,eid
 
 function parseOnshapeUrl(rawUrl) {
   let parsed;
@@ -736,7 +736,7 @@ function parseOnshapeUrl(rawUrl) {
 
   const parts = parsed.pathname.split('/').filter(Boolean);
   const docIdx = parts.indexOf('documents');
-  if (docIdx === -1 || parts.length < docIdx + requiredOnshapePathSegments) {
+  if (docIdx === -1 || parts.length < docIdx + onshapeContextSegmentCount) {
     throw new Error('URL must include /documents/{did}/w/{wid}/e/{eid}.');
   }
 
@@ -784,7 +784,7 @@ function resolveOnshapeContextInputs() {
     !onshapeIdRegex.test(workspaceId) ||
     !onshapeIdRegex.test(elementId)
   ) {
-    throw new Error('Document, Workspace, and Element IDs must be 24-character hex values.');
+    throw new Error('Document, Workspace, and Element IDs must be 24-character hexadecimal strings.');
   }
 
   return { documentId, workspaceId, elementId };
