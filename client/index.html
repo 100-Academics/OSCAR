@@ -719,7 +719,8 @@ const inputDid          = document.getElementById('inputDid');
 const inputWid          = document.getElementById('inputWid');
 const inputEid          = document.getElementById('inputEid');
 
-const ONSHAPE_ID_REGEX = /^[a-f0-9]{24}$/i;
+const onshapeIdRegex = /^[a-f0-9]{24}$/i;
+const requiredOnshapePathSegments = 6; // /documents/{did}/w/{wid}/e/{eid}
 
 function parseOnshapeUrl(rawUrl) {
   let parsed;
@@ -735,7 +736,7 @@ function parseOnshapeUrl(rawUrl) {
 
   const parts = parsed.pathname.split('/').filter(Boolean);
   const docIdx = parts.indexOf('documents');
-  if (docIdx === -1 || parts.length < docIdx + 6) {
+  if (docIdx === -1 || parts.length < docIdx + requiredOnshapePathSegments) {
     throw new Error('URL must include /documents/{did}/w/{wid}/e/{eid}.');
   }
 
@@ -754,9 +755,9 @@ function parseOnshapeUrl(rawUrl) {
   }
 
   if (
-    !ONSHAPE_ID_REGEX.test(documentId) ||
-    !ONSHAPE_ID_REGEX.test(workspaceId) ||
-    !ONSHAPE_ID_REGEX.test(elementId)
+    !onshapeIdRegex.test(documentId) ||
+    !onshapeIdRegex.test(workspaceId) ||
+    !onshapeIdRegex.test(elementId)
   ) {
     throw new Error('Onshape IDs must be 24-character hexadecimal values.');
   }
@@ -767,11 +768,7 @@ function parseOnshapeUrl(rawUrl) {
 function resolveOnshapeContextInputs() {
   const rawUrl = inputOnshapeUrl.value.trim();
   if (rawUrl) {
-    const parsed = parseOnshapeUrl(rawUrl);
-    inputDid.value = parsed.documentId;
-    inputWid.value = parsed.workspaceId;
-    inputEid.value = parsed.elementId;
-    return parsed;
+    return parseOnshapeUrl(rawUrl);
   }
 
   const documentId = inputDid.value.trim();
@@ -783,9 +780,9 @@ function resolveOnshapeContextInputs() {
   }
 
   if (
-    !ONSHAPE_ID_REGEX.test(documentId) ||
-    !ONSHAPE_ID_REGEX.test(workspaceId) ||
-    !ONSHAPE_ID_REGEX.test(elementId)
+    !onshapeIdRegex.test(documentId) ||
+    !onshapeIdRegex.test(workspaceId) ||
+    !onshapeIdRegex.test(elementId)
   ) {
     throw new Error('Document, Workspace, and Element IDs must be 24-character hex values.');
   }
@@ -928,6 +925,9 @@ fetchCtxBtn.addEventListener('click', async () => {
   let ctx;
   try {
     ctx = resolveOnshapeContextInputs();
+    inputDid.value = ctx.documentId;
+    inputWid.value = ctx.workspaceId;
+    inputEid.value = ctx.elementId;
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Invalid Onshape context input.';
     setCtxStatus('err', `✗ ${msg}`);
