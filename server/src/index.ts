@@ -13,14 +13,22 @@ const PORT = Number(process.env.PORT ?? 3000);
 /**
  * Build a validated CORS origin allowlist from the ALLOWED_ORIGINS env var.
  * Each entry must be a valid http/https URL origin (scheme + host + optional port).
- * Returns `false` (deny all cross-origin) when not configured.
+ * When not configured, allows local-development origins (`localhost` / `127.0.0.1`)
+ * plus no-origin requests (same-origin/non-browser) and `Origin: null` (file://).
  * Explicit wildcard ("*") is NOT supported — set specific origins instead.
  */
-function buildCorsOrigin(): string[] | false {
+function buildCorsOrigin(): cors.CorsOptions["origin"] {
   const raw = process.env.ALLOWED_ORIGINS;
   if (!raw || raw.trim() === "") {
-    // No origins configured — block all cross-origin requests.
-    return false;
+    // No explicit allowlist configured: make local development work by default.
+    const localOriginPattern = /^https?:\/\/(?:localhost|127\.0\.0\.1|\[::1\])(?::\d{1,5})?$/i;
+    return (origin, callback) => {
+      if (!origin || origin === "null" || localOriginPattern.test(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(null, false);
+    };
   }
   // Validate each entry: must be a well-formed http/https origin, no path/query.
   const originPattern = /^https?:\/\/(?:\[[0-9a-fA-F:]+\]|[a-zA-Z0-9\-._]+)(:\d{1,5})?$/;
