@@ -727,7 +727,7 @@ function parseOnshapeUrl(rawUrl) {
   try {
     parsed = new URL(rawUrl);
   } catch {
-    throw new Error('Invalid URL. Paste a full Onshape document link.');
+    throw new Error('Invalid URL format. Paste a valid Onshape document URL (for example https://cad.onshape.com/documents/...).');
   }
 
   if (!/(^|\.)onshape\.com$/i.test(parsed.hostname)) {
@@ -784,7 +784,7 @@ function resolveOnshapeContextInputs() {
     !onshapeIdRegex.test(workspaceId) ||
     !onshapeIdRegex.test(elementId)
   ) {
-    throw new Error('Document, Workspace, and Element IDs must be 24-character hexadecimal strings.');
+    throw new Error('Document, Workspace, and Element IDs must be 24-character hexadecimal values.');
   }
 
   return { documentId, workspaceId, elementId };

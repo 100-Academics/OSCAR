@@ -64,7 +64,7 @@ npx serve client -l 3001
 # then open http://localhost:3001
 ```
 
-In OSCAR, paste a full Onshape workspace URL (for example `https://cad.onshape.com/documents/{did}/w/{wid}/e/{eid}`) and click **Load context**.
+In OSCAR, paste a full Onshape workspace URL (for example `https://cad.onshape.com/documents/55282c74bcea380828de0e51/w/dbddf877c059c056e8d4986b/e/4c596dc1de28e1258a125bf0`) and click **Load context**.
 Then chat with the model and use **Apply to Onshape** to push approved actions to the real Onshape document.
 
 No ngrok/cloudflared is required for this local standalone mode.
@@ -270,7 +270,7 @@ ALLOWED_ORIGINS=https://YOUR-UI-TUNNEL-URL,https://cad.onshape.com
 
 1. Open an Onshape document and add the OSCAR app/tab.
 2. In OSCAR:
-   - Paste the current Onshape workspace URL (`.../documents/{did}/w/{wid}/e/{eid}`), or manual IDs
+   - Paste the current Onshape workspace URL (`.../documents/<documentId>/w/<workspaceId>/e/<elementId>`), or manual IDs
    - Click **Load context**
 3. Pick a model from the top-right model picker (default is **GPT-5.3-Codex**).
 4. Ask for changes (for example, "Generate a FeatureScript fillet on selected edges").
