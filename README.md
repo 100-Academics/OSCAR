@@ -195,6 +195,58 @@ ALLOWED_ORIGINS=https://oscar-ui.yourdomain.com,https://cad.onshape.com
 <script>window.OSCAR_API_URL = "https://oscar-api.yourdomain.com";</script>
 ```
 
+#### Local tunnel setup (ngrok / cloudflared)
+
+If you are testing locally, you can expose both backend and UI with tunnels instead of deploying:
+
+1. Start OSCAR backend locally:
+
+```sh
+cd server
+npm run dev
+```
+
+2. Serve the UI locally from repo root:
+
+```sh
+npx serve client -l 3001
+```
+
+3. Create **two** public HTTPS tunnels:
+
+- one for backend (`localhost:3000`)
+- one for UI (`localhost:3001`)
+
+ngrok example:
+
+```sh
+ngrok http 3000
+ngrok http 3001
+```
+
+cloudflared example:
+
+```sh
+cloudflared tunnel --url http://localhost:3000
+cloudflared tunnel --url http://localhost:3001
+```
+
+4. Point UI to backend tunnel by setting this before the main script in `client/index.html`:
+
+```html
+<script>window.OSCAR_API_URL = "https://YOUR-BACKEND-TUNNEL-URL";</script>
+```
+
+5. Set CORS in `server/.env` and restart backend:
+
+```env
+ALLOWED_ORIGINS=https://YOUR-UI-TUNNEL-URL,https://cad.onshape.com
+```
+
+6. In Onshape custom app settings, use the **UI tunnel URL** as the iframe/app URL.
+
+> Seeing `Cannot GET /` at your backend tunnel root is expected. The OSCAR backend does not serve a homepage at `/`. Use `https://YOUR-BACKEND-TUNNEL-URL/health` to verify the API is reachable.
+
 ### B. Create an Onshape app
 
 1. Go to the Onshape Developer Portal: <https://dev-portal.onshape.com>.
