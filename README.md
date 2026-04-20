@@ -1,10 +1,10 @@
 # OSCAR — Onshape-Synced Copilot for Automated Reviews
 
-A bi-directional communication bridge that connects your Onshape Part Studio to **GitHub Copilot** (and other AI models) directly inside the Onshape tab.
+A bi-directional communication bridge that connects your Onshape Part Studio to **GitHub Copilot** (and other AI models) from a local GUI or an embedded Onshape tab.
 
 ## What it does
 
-- **Send instructions** from the Onshape tab to GitHub Copilot (or any configured AI model)
+- **Send instructions** from a local OSCAR UI (or embedded tab) to GitHub Copilot (or any configured AI model)
 - **Receive responses** — FeatureScript snippets, design suggestions, documentation, review notes — rendered right in the tab
 - **Apply results** to your Onshape document with one click (FeatureScript execution, feature modifications)
 - **Pick your model** from a GitHub Copilot-style model selector in the top bar:
@@ -55,16 +55,21 @@ npm run build && npm start   # production
 
 Server starts on `http://localhost:3000`.
 
-### 6. Open the Onshape tab
+### 6. Open OSCAR locally (recommended, 100% free)
 
 Open `client/index.html` directly in your browser, or serve it:
 
 ```sh
-npx serve client
+npx serve client -l 3001
 # then open http://localhost:3001
 ```
 
-To embed it as a custom tab inside Onshape, see [Embedding as an Onshape tab](#embedding-as-an-onshape-tab).
+In OSCAR, paste a full Onshape workspace URL (for example `https://cad.onshape.com/documents/{did}/w/{wid}/e/{eid}`) and click **Load context**.
+Then chat with the model and use **Apply to Onshape** to push approved actions to the real Onshape document.
+
+No ngrok/cloudflared is required for this local standalone mode.
+
+To embed OSCAR as a custom tab inside Onshape, see [Embedding as an Onshape tab](#embedding-as-an-onshape-tab).
 
 ---
 
@@ -177,7 +182,10 @@ The new provider and all its agents will automatically appear in the UI model pi
 
 ---
 
-## Install and use OSCAR inside Onshape (step-by-step)
+## Install and use OSCAR inside Onshape (embedded tab mode)
+
+> This mode requires publicly reachable HTTPS URLs so Onshape can load the UI iframe and call the backend.  
+> If you want a fully local/free setup, use the local standalone flow above instead.
 
 ### A. Deploy OSCAR so Onshape can reach it
 
@@ -262,7 +270,7 @@ ALLOWED_ORIGINS=https://YOUR-UI-TUNNEL-URL,https://cad.onshape.com
 
 1. Open an Onshape document and add the OSCAR app/tab.
 2. In OSCAR:
-   - Paste the current **Document ID**, **Workspace ID**, and **Element ID**
+   - Paste the current Onshape workspace URL (`.../documents/{did}/w/{wid}/e/{eid}`), or manual IDs
    - Click **Load context**
 3. Pick a model from the top-right model picker (default is **GPT-5.3-Codex**).
 4. Ask for changes (for example, "Generate a FeatureScript fillet on selected edges").

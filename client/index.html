@@ -234,6 +234,11 @@
       transition: border-color .15s;
     }
 
+    .ctx-input-url {
+      width: min(560px, 66vw);
+      font-family: var(--font);
+    }
+
     .ctx-input:focus { border-color: var(--copilot); }
     .ctx-input::placeholder { color: var(--text-muted); }
 
@@ -606,6 +611,17 @@
 <div class="context-bar">
   <span class="ctx-label">Onshape&nbsp;context:</span>
   <div class="ctx-field">
+    <label for="inputOnshapeUrl" style="flex-shrink:0">URL</label>
+    <input
+      class="ctx-input ctx-input-url"
+      id="inputOnshapeUrl"
+      placeholder="https://cad.onshape.com/documents/.../w/.../e/..."
+      autocomplete="off"
+      spellcheck="false"
+    />
+  </div>
+  <span style="font-size:11px;color:var(--text-muted)">or manual IDs:</span>
+  <div class="ctx-field">
     <label for="inputDid" style="flex-shrink:0">Document</label>
     <input class="ctx-input" id="inputDid" placeholder="documentId" autocomplete="off" spellcheck="false" />
   </div>
@@ -698,6 +714,84 @@ const suggestionChips   = document.getElementById('suggestionChips');
 const fetchCtxBtn       = document.getElementById('fetchCtxBtn');
 const ctxStatus         = document.getElementById('ctxStatus');
 const toastContainer    = document.getElementById('toastContainer');
+const inputOnshapeUrl   = document.getElementById('inputOnshapeUrl');
+const inputDid          = document.getElementById('inputDid');
+const inputWid          = document.getElementById('inputWid');
+const inputEid          = document.getElementById('inputEid');
+
+const ONSHAPE_ID_REGEX = /^[a-f0-9]{24}$/i;
+
+function parseOnshapeUrl(rawUrl) {
+  let parsed;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    throw new Error('Invalid URL. Paste a full Onshape document link.');
+  }
+
+  if (!/(^|\.)onshape\.com$/i.test(parsed.hostname)) {
+    throw new Error('URL must be on an Onshape domain (for example cad.onshape.com).');
+  }
+
+  const parts = parsed.pathname.split('/').filter(Boolean);
+  const docIdx = parts.indexOf('documents');
+  if (docIdx === -1 || parts.length < docIdx + 6) {
+    throw new Error('URL must include /documents/{did}/w/{wid}/e/{eid}.');
+  }
+
+  const documentId = parts[docIdx + 1];
+  const branchType = parts[docIdx + 2];
+  const workspaceId = parts[docIdx + 3];
+  const elementMarker = parts[docIdx + 4];
+  const elementId = parts[docIdx + 5];
+
+  if (branchType !== 'w') {
+    throw new Error('Use a workspace link (/w/...) so OSCAR can apply edits.');
+  }
+
+  if (elementMarker !== 'e') {
+    throw new Error('URL must include an element segment (/e/{elementId}).');
+  }
+
+  if (
+    !ONSHAPE_ID_REGEX.test(documentId) ||
+    !ONSHAPE_ID_REGEX.test(workspaceId) ||
+    !ONSHAPE_ID_REGEX.test(elementId)
+  ) {
+    throw new Error('Onshape IDs must be 24-character hexadecimal values.');
+  }
+
+  return { documentId, workspaceId, elementId };
+}
+
+function resolveOnshapeContextInputs() {
+  const rawUrl = inputOnshapeUrl.value.trim();
+  if (rawUrl) {
+    const parsed = parseOnshapeUrl(rawUrl);
+    inputDid.value = parsed.documentId;
+    inputWid.value = parsed.workspaceId;
+    inputEid.value = parsed.elementId;
+    return parsed;
+  }
+
+  const documentId = inputDid.value.trim();
+  const workspaceId = inputWid.value.trim();
+  const elementId = inputEid.value.trim();
+
+  if (!documentId || !workspaceId || !elementId) {
+    throw new Error('Paste an Onshape URL, or enter Document, Workspace, and Element IDs.');
+  }
+
+  if (
+    !ONSHAPE_ID_REGEX.test(documentId) ||
+    !ONSHAPE_ID_REGEX.test(workspaceId) ||
+    !ONSHAPE_ID_REGEX.test(elementId)
+  ) {
+    throw new Error('Document, Workspace, and Element IDs must be 24-character hex values.');
+  }
+
+  return { documentId, workspaceId, elementId };
+}
 
 // ── Toast helper ──────────────────────────────────────────────────────────
 function showToast(text, type = 'info', duration = 4000) {
@@ -831,12 +925,13 @@ document.addEventListener('click', (e) => {
 
 // ── Load Onshape context ──────────────────────────────────────────────────
 fetchCtxBtn.addEventListener('click', async () => {
-  const did = document.getElementById('inputDid').value.trim();
-  const wid = document.getElementById('inputWid').value.trim();
-  const eid = document.getElementById('inputEid').value.trim();
-
-  if (!did || !wid || !eid) {
-    showToast('Enter Document ID, Workspace ID, and Element ID first.', 'error');
+  let ctx;
+  try {
+    ctx = resolveOnshapeContextInputs();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Invalid Onshape context input.';
+    setCtxStatus('err', `✗ ${msg}`);
+    showToast(msg, 'error');
     return;
   }
 
@@ -844,6 +939,7 @@ fetchCtxBtn.addEventListener('click', async () => {
   fetchCtxBtn.disabled = true;
 
   try {
+    const { documentId: did, workspaceId: wid, elementId: eid } = ctx;
     const url = `${API_BASE}/api/onshape/context?did=${encodeURIComponent(did)}&wid=${encodeURIComponent(wid)}&eid=${encodeURIComponent(eid)}`;
     const res  = await fetch(url);
     const data = await res.json();
@@ -992,7 +1088,7 @@ function appendTypingIndicator() {
 // ── Apply action to Onshape ───────────────────────────────────────────────
 async function applyAction(action, btn) {
   if (!onshapeCtx) {
-    showToast('Load an Onshape context first (fill in IDs and click "Load context").', 'error', 5000);
+    showToast('Load an Onshape context first (paste a URL or enter IDs, then click "Load context").', 'error', 5000);
     return;
   }
 
