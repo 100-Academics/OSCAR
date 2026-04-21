@@ -1,10 +1,10 @@
 # OSCAR — Onshape-Synced Copilot for Automated Reviews
 
-A bi-directional communication bridge that connects your Onshape Part Studio to **GitHub Copilot** (and other AI models) directly inside the Onshape tab.
+A bi-directional communication bridge that connects your Onshape Part Studio to **GitHub Copilot** (and other AI models) from a local GUI or an embedded Onshape tab.
 
 ## What it does
 
-- **Send instructions** from the Onshape tab to GitHub Copilot (or any configured AI model)
+- **Send instructions** from a local OSCAR UI (or embedded tab) to GitHub Copilot (or any configured AI model)
 - **Receive responses** — FeatureScript snippets, design suggestions, documentation, review notes — rendered right in the tab
 - **Apply results** to your Onshape document with one click (FeatureScript execution, feature modifications)
 - **Pick your model** from a GitHub Copilot-style model selector in the top bar:
@@ -55,16 +55,21 @@ npm run build && npm start   # production
 
 Server starts on `http://localhost:3000`.
 
-### 6. Open the Onshape tab
+### 6. Open OSCAR locally (recommended, 100% free)
 
 Open `client/index.html` directly in your browser, or serve it:
 
 ```sh
-npx serve client
+npx serve client -l 3001
 # then open http://localhost:3001
 ```
 
-To embed it as a custom tab inside Onshape, see [Embedding as an Onshape tab](#embedding-as-an-onshape-tab).
+In OSCAR, paste a full Onshape workspace URL (for example `https://cad.onshape.com/documents/55282c74bcea380828de0e51/w/dbddf877c059c056e8d4986b/e/4c596dc1de28e1258a125bf0`) and click **Load context**.
+Then chat with the model and use **Apply to Onshape** to push approved actions to the real Onshape document.
+
+No ngrok/cloudflared is required for this local standalone mode.
+
+To embed OSCAR as a custom tab inside Onshape, see [Embedding as an Onshape tab](#embedding-as-an-onshape-tab).
 
 ---
 
@@ -177,7 +182,10 @@ The new provider and all its agents will automatically appear in the UI model pi
 
 ---
 
-## Install and use OSCAR inside Onshape (step-by-step)
+## Install and use OSCAR inside Onshape (embedded tab mode)
+
+> This mode requires publicly reachable HTTPS URLs so Onshape can load the UI iframe and call the backend.  
+> If you want a fully local/free setup, use the local standalone flow above instead.
 
 ### A. Deploy OSCAR so Onshape can reach it
 
@@ -195,6 +203,58 @@ ALLOWED_ORIGINS=https://oscar-ui.yourdomain.com,https://cad.onshape.com
 <script>window.OSCAR_API_URL = "https://oscar-api.yourdomain.com";</script>
 ```
 
+#### Local tunnel setup (ngrok / cloudflared)
+
+If you are testing locally, you can expose both backend and UI with tunnels instead of deploying:
+
+1. Start OSCAR backend locally:
+
+```sh
+cd server
+npm run dev
+```
+
+2. Serve the UI locally from repo root:
+
+```sh
+npx serve client -l 3001
+```
+
+3. Create **two** public HTTPS tunnels:
+
+- one for backend (`localhost:3000`)
+- one for UI (`localhost:3001`)
+
+ngrok example:
+
+```sh
+ngrok http 3000
+ngrok http 3001
+```
+
+cloudflared example:
+
+```sh
+cloudflared tunnel --url http://localhost:3000
+cloudflared tunnel --url http://localhost:3001
+```
+
+4. Point UI to backend tunnel by setting this before the main script in `client/index.html`:
+
+```html
+<script>window.OSCAR_API_URL = "https://YOUR-BACKEND-TUNNEL-URL";</script>
+```
+
+5. Set CORS in `server/.env` and restart backend:
+
+```env
+ALLOWED_ORIGINS=https://YOUR-UI-TUNNEL-URL,https://cad.onshape.com
+```
+
+6. In Onshape custom app settings, use the **UI tunnel URL** as the iframe/app URL.
+
+> Seeing `Cannot GET /` at your backend tunnel root is expected. The OSCAR backend does not serve a homepage at `/`. Use `https://YOUR-BACKEND-TUNNEL-URL/health` to verify the API is reachable.
+
 ### B. Create an Onshape app
 
 1. Go to the Onshape Developer Portal: <https://dev-portal.onshape.com>.
@@ -210,7 +270,7 @@ ALLOWED_ORIGINS=https://oscar-ui.yourdomain.com,https://cad.onshape.com
 
 1. Open an Onshape document and add the OSCAR app/tab.
 2. In OSCAR:
-   - Paste the current **Document ID**, **Workspace ID**, and **Element ID**
+   - Paste the current Onshape workspace URL (`.../documents/<documentId>/w/<workspaceId>/e/<elementId>`), or manual IDs
    - Click **Load context**
 3. Pick a model from the top-right model picker (default is **GPT-5.3-Codex**).
 4. Ask for changes (for example, "Generate a FeatureScript fillet on selected edges").
