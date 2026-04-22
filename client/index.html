@@ -1111,7 +1111,7 @@ async function applyAction(action, btn) {
       bar.classList.remove('ctx-required'); // reset in case it's mid-animation
       void bar.offsetHeight;                // force reflow so animation restarts
       bar.classList.add('ctx-required');
-      setTimeout(() => bar.classList.remove('ctx-required'), 600);
+      bar.addEventListener('animationend', () => bar.classList.remove('ctx-required'), { once: true });
     }
     setCtxStatus('err', '✗ Context required — paste a URL then click "Load context"');
     inputOnshapeUrl.focus();
