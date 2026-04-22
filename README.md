@@ -29,7 +29,7 @@ A bi-directional communication bridge that connects your Onshape Part Studio to 
 4. Under **Permissions / Scopes**, enable:
    - **GitHub Copilot** (classic PAT `copilot` scope), or
    - **GitHub Models: Read** (`models:read`) for fine-grained PATs
-5. Copy the generated token (starts with `ghp_…`)
+5. Copy the generated token (classic usually starts with `ghp_…`, fine-grained starts with `github_pat_…`)
 
 ### 3. Get Onshape API keys
 

@@ -143,9 +143,9 @@ export class GitHubCopilotProvider extends BaseProvider {
 
   private modelToGithubModelsId(model: string): string | null {
     const map: Record<string, string> = {
-      "gpt-5.3-codex": "openai/gpt-5-codex",
-      "gpt-5.2-codex": "openai/gpt-5-codex",
-      "gpt-5.2": "openai/gpt-5",
+      "gpt-5.3-codex": "openai/gpt-5.3-codex",
+      "gpt-5.2-codex": "openai/gpt-5.2-codex",
+      "gpt-5.2": "openai/gpt-5.2",
       "gpt-5-mini": "openai/gpt-5-mini",
       "gpt-5.4-mini": "openai/gpt-5-mini",
       "gpt-4.1": "openai/gpt-4.1",
@@ -157,6 +157,55 @@ export class GitHubCopilotProvider extends BaseProvider {
       "gemini-2.5-pro": "google/gemini-2.5-pro",
     };
     return map[model] ?? null;
+  }
+
+  private async chatViaGithubModels(
+    githubToken: string,
+    model: string,
+    messages: Message[],
+    systemPrompt?: string
+  ): Promise<Message> {
+    const modelsModel = this.modelToGithubModelsId(model);
+    if (!modelsModel) {
+      throw new Error(
+        "Fallback to GitHub Models is unavailable for this selected model."
+      );
+    }
+
+    const modelsResp = await fetch(this.modelsChatEndpoint, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${githubToken}`,
+        "Content-Type": "application/json",
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+      body: JSON.stringify({
+        model: modelsModel,
+        messages: [
+          ...(systemPrompt ? [{ role: "system", content: systemPrompt }] : []),
+          ...messages,
+        ],
+        stream: false,
+      }),
+    });
+
+    if (!modelsResp.ok) {
+      const modelsErrorText = await modelsResp.text();
+      throw new Error(
+        `GitHub Models error ${modelsResp.status}: ${modelsErrorText}. ` +
+          "Use a token with GitHub Models read permission and Copilot enabled on your account."
+      );
+    }
+
+    const modelsData = (await modelsResp.json()) as {
+      choices: { message: { role: string; content: string } }[];
+    };
+    const modelsChoice = modelsData.choices?.[0]?.message;
+    if (!modelsChoice) {
+      throw new Error("No response from GitHub Models API.");
+    }
+    return { role: "assistant", content: modelsChoice.content };
   }
 
   /**
@@ -243,6 +292,12 @@ export class GitHubCopilotProvider extends BaseProvider {
       stream: false,
     };
 
+    // Fine-grained PATs are not supported by the Copilot chat endpoint directly.
+    // In direct-token mode, call GitHub Models immediately.
+    if (this.authMode === "github-token-direct") {
+      return this.chatViaGithubModels(githubToken, agent.model, messages, systemPrompt);
+    }
+
     const resp = await fetch(this.chatEndpoint, {
       method: "POST",
       headers: {
@@ -269,53 +324,6 @@ export class GitHubCopilotProvider extends BaseProvider {
     }
 
     const copilotErrorText = await resp.text();
-
-    // If we are in direct-token mode, try GitHub Models inference endpoint.
-    if (this.authMode === "github-token-direct") {
-      const modelsModel = this.modelToGithubModelsId(agent.model);
-      if (!modelsModel) {
-        throw new Error(
-          `GitHub Copilot API error ${resp.status}: ${copilotErrorText}. ` +
-            "Fallback to GitHub Models is unavailable for this selected model."
-        );
-      }
-
-      const modelsResp = await fetch(this.modelsChatEndpoint, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${githubToken}`,
-          "Content-Type": "application/json",
-          Accept: "application/vnd.github+json",
-          "X-GitHub-Api-Version": "2022-11-28",
-        },
-        body: JSON.stringify({
-          model: modelsModel,
-          messages: [
-            ...(systemPrompt ? [{ role: "system", content: systemPrompt }] : []),
-            ...messages,
-          ],
-          stream: false,
-        }),
-      });
-
-      if (!modelsResp.ok) {
-        const modelsErrorText = await modelsResp.text();
-        throw new Error(
-          `GitHub Copilot API error ${resp.status}: ${copilotErrorText}. ` +
-            `GitHub Models fallback error ${modelsResp.status}: ${modelsErrorText}. ` +
-            "Use a token with GitHub Models read permission and Copilot enabled on your account."
-        );
-      }
-
-      const modelsData = (await modelsResp.json()) as {
-        choices: { message: { role: string; content: string } }[];
-      };
-      const modelsChoice = modelsData.choices?.[0]?.message;
-      if (!modelsChoice) {
-        throw new Error("No response from GitHub Models fallback API.");
-      }
-      return { role: "assistant", content: modelsChoice.content };
-    }
 
     throw new Error(`GitHub Copilot API error ${resp.status}: ${copilotErrorText}`);
   }
