@@ -59,7 +59,7 @@ Server starts on `http://localhost:3000`.
 
 ### 6. Open OSCAR locally (recommended, 100% free)
 
-Open **<http://localhost:3000>** in your browser — the server now serves the OSCAR UI directly at its root.
+Open **[http://localhost:3000](http://localhost:3000)** in your browser — the server now serves the OSCAR UI directly at its root.
 
 In OSCAR, paste a full Onshape workspace URL (for example `https://cad.onshape.com/documents/55282c74bcea380828de0e51/w/dbddf877c059c056e8d4986b/e/4c596dc1de28e1258a125bf0`) and click **Load context**.
 Then chat with the model and use **Apply to Onshape** to push approved actions to the real Onshape document.

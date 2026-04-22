@@ -54,10 +54,12 @@ app.use(express.json({ limit: "1mb" }));
 // ── Static client ────────────────────────────────────────────────────────────
 // Serve the client UI from the root so users can open http://localhost:<PORT>
 // directly in their browser without needing a separate static file server.
-// `import.meta.url` resolves correctly in both dev (src/) and prod (dist/).
+// Path resolves correctly in both modes:
+//   dev  (tsx src/index.ts) : __dirname = server/src  → ../../client = <root>/client
+//   prod (node dist/index.js): __dirname = server/dist → ../../client = <root>/client
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const clientDir = path.resolve(__dirname, "../../client");
+const clientDir = path.resolve(__dirname, "..", "..", "client");
 app.use(express.static(clientDir));
 
 // ── Routes ──────────────────────────────────────────────────────────────────
