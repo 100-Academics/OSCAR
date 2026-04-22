@@ -1109,7 +1109,7 @@ async function applyAction(action, btn) {
     const bar = document.querySelector('.context-bar');
     if (bar) {
       bar.classList.remove('ctx-required'); // reset in case it's mid-animation
-      void bar.offsetWidth;                 // force reflow so animation restarts
+      void bar.offsetHeight;                // force reflow so animation restarts
       bar.classList.add('ctx-required');
       setTimeout(() => bar.classList.remove('ctx-required'), 600);
     }

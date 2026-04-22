@@ -335,6 +335,10 @@ export class GitHubCopilotProvider extends BaseProvider {
       // not JSON — fall through to generic error
     }
     if (copilotErrorBody.error?.code === "unsupported_api_for_model") {
+      console.warn(
+        `Model "${agent.model}" is not supported by the Copilot chat endpoint. ` +
+          "Falling back to GitHub Models inference."
+      );
       return this.chatViaGithubModels(githubToken, agent.model, messages, systemPrompt);
     }
 
