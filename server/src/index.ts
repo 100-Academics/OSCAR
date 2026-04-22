@@ -1,6 +1,8 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
 import agentsRouter from "./routes/agents.js";
 import chatRouter from "./routes/chat.js";
 import onshapeRouter from "./routes/onshape.js";
@@ -48,6 +50,15 @@ function buildCorsOrigin(): cors.CorsOptions["origin"] {
 
 app.use(cors({ origin: buildCorsOrigin() }));
 app.use(express.json({ limit: "1mb" }));
+
+// ── Static client ────────────────────────────────────────────────────────────
+// Serve the client UI from the root so users can open http://localhost:<PORT>
+// directly in their browser without needing a separate static file server.
+// `import.meta.url` resolves correctly in both dev (src/) and prod (dist/).
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const clientDir = path.resolve(__dirname, "../../client");
+app.use(express.static(clientDir));
 
 // ── Routes ──────────────────────────────────────────────────────────────────
 app.use("/api/agents", agentsRouter);

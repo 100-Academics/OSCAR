@@ -59,12 +59,7 @@ Server starts on `http://localhost:3000`.
 
 ### 6. Open OSCAR locally (recommended, 100% free)
 
-Open `client/index.html` directly in your browser, or serve it:
-
-```sh
-npx serve client -l 3001
-# then open http://localhost:3001
-```
+Open **<http://localhost:3000>** in your browser — the server now serves the OSCAR UI directly at its root.
 
 In OSCAR, paste a full Onshape workspace URL (for example `https://cad.onshape.com/documents/55282c74bcea380828de0e51/w/dbddf877c059c056e8d4986b/e/4c596dc1de28e1258a125bf0`) and click **Load context**.
 Then chat with the model and use **Apply to Onshape** to push approved actions to the real Onshape document.
@@ -107,6 +102,7 @@ server/
 
 | Method | Path | Description |
 |--------|------|-------------|
+| `GET`  | `/` | Serves the OSCAR client UI (`client/index.html`) |
 | `GET`  | `/api/agents` | List all available AI models grouped by provider |
 | `POST` | `/api/chat` | Send a message to the selected agent |
 | `GET`  | `/api/onshape/context` | Fetch document + feature tree from Onshape |
@@ -191,71 +187,46 @@ The new provider and all its agents will automatically appear in the UI model pi
 
 ### A. Deploy OSCAR so Onshape can reach it
 
-1. Deploy the backend (`server/`) to a public HTTPS URL (example: `https://oscar-api.yourdomain.com`).
-2. Host `client/index.html` at a public HTTPS URL (example: `https://oscar-ui.yourdomain.com`).
-3. Set CORS in `server/.env`:
+1. Deploy the backend (`server/`) to a public HTTPS URL (example: `https://oscar.yourdomain.com`).
+   The server now serves the OSCAR UI at its root, so a single deployment hosts both the API and the frontend.
+2. Set CORS in `server/.env` to allow Onshape to load the iframe:
 
 ```env
-ALLOWED_ORIGINS=https://oscar-ui.yourdomain.com,https://cad.onshape.com
-```
-
-4. Ensure your frontend points to your backend by adding this before the main script in `client/index.html`:
-
-```html
-<script>window.OSCAR_API_URL = "https://oscar-api.yourdomain.com";</script>
+ALLOWED_ORIGINS=https://oscar.yourdomain.com,https://cad.onshape.com
 ```
 
 #### Local tunnel setup (ngrok / cloudflared)
 
-If you are testing locally, you can expose both backend and UI with tunnels instead of deploying:
+If you are testing locally, expose the backend with a single tunnel (it now also serves the UI):
 
-1. Start OSCAR backend locally:
+1. Start OSCAR locally:
 
 ```sh
 cd server
 npm run dev
 ```
 
-2. Serve the UI locally from repo root:
-
-```sh
-npx serve client -l 3001
-```
-
-3. Create **two** public HTTPS tunnels:
-
-- one for backend (`localhost:3000`)
-- one for UI (`localhost:3001`)
+2. Create a public HTTPS tunnel to the backend:
 
 ngrok example:
 
 ```sh
 ngrok http 3000
-ngrok http 3001
 ```
 
 cloudflared example:
 
 ```sh
 cloudflared tunnel --url http://localhost:3000
-cloudflared tunnel --url http://localhost:3001
 ```
 
-4. Point UI to backend tunnel by setting this before the main script in `client/index.html`:
-
-```html
-<script>window.OSCAR_API_URL = "https://YOUR-BACKEND-TUNNEL-URL";</script>
-```
-
-5. Set CORS in `server/.env` and restart backend:
+3. Set CORS in `server/.env` and restart backend:
 
 ```env
-ALLOWED_ORIGINS=https://YOUR-UI-TUNNEL-URL,https://cad.onshape.com
+ALLOWED_ORIGINS=https://YOUR-TUNNEL-URL,https://cad.onshape.com
 ```
 
-6. In Onshape custom app settings, use the **UI tunnel URL** as the iframe/app URL.
-
-> Seeing `Cannot GET /` at your backend tunnel root is expected. The OSCAR backend does not serve a homepage at `/`. Use `https://YOUR-BACKEND-TUNNEL-URL/health` to verify the API is reachable.
+4. In Onshape custom app settings, use **YOUR-TUNNEL-URL** as the iframe/app URL.
 
 ### B. Create an Onshape app
 
@@ -290,11 +261,12 @@ ALLOWED_ORIGINS=https://YOUR-UI-TUNNEL-URL,https://cad.onshape.com
 ## Embedding as an Onshape tab
 
 1. In Onshape, open **App Store** → **Manage apps** → **Add custom app**
-2. Set the iframe URL to where `client/index.html` is hosted (e.g., `https://your-server.example.com/`)
-3. In `client/index.html`, set `window.OSCAR_API_URL` to your server URL before the `<script>` block:
+2. Set the iframe URL to your deployed OSCAR server (e.g., `https://your-server.example.com/`).
+   The server serves the UI at its root, so no separate frontend hosting is needed.
+3. Set `ALLOWED_ORIGINS` in `server/.env` to allow Onshape to load the iframe:
 
-```html
-<script>window.OSCAR_API_URL = 'https://your-server.example.com';</script>
+```env
+ALLOWED_ORIGINS=https://your-server.example.com,https://cad.onshape.com
 ```
 
 The panel will appear as a tab in your Onshape document view.
