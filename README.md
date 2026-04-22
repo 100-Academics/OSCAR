@@ -26,7 +26,9 @@ A bi-directional communication bridge that connects your Onshape Part Studio to 
 1. Go to <https://github.com/settings/tokens/new>
 2. Token name: `OSCAR`
 3. Expiration: 90 days (or custom)
-4. Under **Permissions / Scopes**, enable **GitHub Copilot** (in the "Copilot" section)
+4. Under **Permissions / Scopes**, enable:
+   - **GitHub Copilot** (classic PAT `copilot` scope), or
+   - **GitHub Models: Read** (`models:read`) for fine-grained PATs
 5. Copy the generated token (starts with `ghp_…`)
 
 ### 3. Get Onshape API keys
@@ -302,7 +304,7 @@ The panel will appear as a tab in your Onshape document view.
 ## Security notes
 
 - **Secrets are server-side only.** The `GITHUB_TOKEN`, Onshape keys, and any AI provider keys are read from the server's environment — they are never sent to the browser.
-- The GitHub Copilot session token is exchanged server-side and cached in memory for ~30 minutes. It is never exposed to the client.
+- OSCAR first uses GitHub Copilot session-token exchange server-side (cached ~30 minutes). If that endpoint is unavailable for your token/account, OSCAR falls back to GitHub Models inference using the same server-side `GITHUB_TOKEN`.
 - `onshapeContext` document/workspace/element IDs are validated server-side as 24-character Onshape IDs before API calls; still add auth middleware and per-user authorization checks for production.
 - Set `ALLOWED_ORIGINS` in `.env` to restrict CORS in production.
 
