@@ -266,6 +266,19 @@
     .ctx-status.err { background: rgba(248,81,73,.15);  color: var(--danger); }
     .ctx-status.loading { background: rgba(88,166,255,.1); color: var(--copilot); }
 
+    @keyframes ctxShake {
+      0%, 100% { transform: translateX(0); }
+      20%       { transform: translateX(-5px); }
+      40%       { transform: translateX(5px); }
+      60%       { transform: translateX(-4px); }
+      80%       { transform: translateX(4px); }
+    }
+    .context-bar.ctx-required {
+      outline: 2px solid var(--danger);
+      outline-offset: -2px;
+      animation: ctxShake 0.45s ease;
+    }
+
     /* ── Message list ───────────────────────────────────────────────────── */
     .messages {
       flex: 1;
@@ -633,7 +646,7 @@
     <label for="inputEid" style="flex-shrink:0">Element</label>
     <input class="ctx-input" id="inputEid" placeholder="elementId" autocomplete="off" spellcheck="false" />
   </div>
-  <button class="ctx-fetch-btn" id="fetchCtxBtn" title="Load feature tree from Onshape">Load context</button>
+  <button class="ctx-fetch-btn" id="fetchCtxBtn" title="Load feature tree from Onshape (Enter)">Load context</button>
   <span class="ctx-status" id="ctxStatus" style="display:none"></span>
 </div>
 
@@ -921,6 +934,36 @@ document.addEventListener('click', (e) => {
 });
 
 // ── Load Onshape context ──────────────────────────────────────────────────
+
+// Allow pressing Enter in any context-bar input to trigger "Load context".
+[inputOnshapeUrl, inputDid, inputWid, inputEid].forEach(input => {
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); fetchCtxBtn.click(); }
+  });
+});
+
+// Auto-populate manual ID fields when a valid Onshape URL is pasted/typed
+// so the user gets immediate feedback that the URL was understood.
+inputOnshapeUrl.addEventListener('input', () => {
+  const raw = inputOnshapeUrl.value.trim();
+  if (!raw) {
+    // URL was cleared — wipe the auto-populated manual fields so they don't
+    // hold stale values from a previously pasted URL.
+    inputDid.value = '';
+    inputWid.value = '';
+    inputEid.value = '';
+    return;
+  }
+  try {
+    const { documentId, workspaceId, elementId } = parseOnshapeUrl(raw);
+    inputDid.value = documentId;
+    inputWid.value = workspaceId;
+    inputEid.value = elementId;
+  } catch {
+    // Not yet a complete/valid URL — leave manual fields alone
+  }
+});
+
 fetchCtxBtn.addEventListener('click', async () => {
   let ctx;
   try {
@@ -1088,7 +1131,20 @@ function appendTypingIndicator() {
 // ── Apply action to Onshape ───────────────────────────────────────────────
 async function applyAction(action, btn) {
   if (!onshapeCtx) {
-    showToast('Load an Onshape context first (paste a URL or enter IDs, then click "Load context").', 'error', 5000);
+    showToast('Load an Onshape context first (paste a URL and press Enter, or click "Load context").', 'error', 5000);
+
+    // Visually direct the user to the context bar so the requirement is
+    // impossible to miss: shake it, add an inline error status, and focus the
+    // URL field.
+    const bar = document.querySelector('.context-bar');
+    if (bar) {
+      bar.classList.remove('ctx-required'); // reset in case it's mid-animation
+      void bar.offsetHeight;                // force reflow so animation restarts
+      bar.classList.add('ctx-required');
+      bar.addEventListener('animationend', () => bar.classList.remove('ctx-required'), { once: true });
+    }
+    setCtxStatus('err', '✗ Context required — paste a URL and press Enter or click "Load context"');
+    inputOnshapeUrl.focus();
     return;
   }
 
@@ -1109,9 +1165,14 @@ async function applyAction(action, btn) {
     btn.textContent = '✓ Applied';
     showToast(`Action "${action.label}" applied successfully!`, 'success');
   } catch (err) {
-    btn.disabled = false;
-    btn.textContent = 'Apply to Onshape';
-    showToast(`Failed to apply action: ${err.message}`, 'error');
+    btn.textContent = '✗ Failed';
+    btn.style.background = 'var(--danger)';
+    showToast(`Failed to apply action: ${err.message}`, 'error', 6000);
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.textContent = 'Apply to Onshape';
+      btn.style.background = '';
+    }, 2000);
   }
 }
 
