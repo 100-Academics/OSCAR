@@ -946,7 +946,14 @@ document.addEventListener('click', (e) => {
 // so the user gets immediate feedback that the URL was understood.
 inputOnshapeUrl.addEventListener('input', () => {
   const raw = inputOnshapeUrl.value.trim();
-  if (!raw) return;
+  if (!raw) {
+    // URL was cleared — wipe the auto-populated manual fields so they don't
+    // hold stale values from a previously pasted URL.
+    inputDid.value = '';
+    inputWid.value = '';
+    inputEid.value = '';
+    return;
+  }
   try {
     const { documentId, workspaceId, elementId } = parseOnshapeUrl(raw);
     inputDid.value = documentId;
