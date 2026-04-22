@@ -266,6 +266,19 @@
     .ctx-status.err { background: rgba(248,81,73,.15);  color: var(--danger); }
     .ctx-status.loading { background: rgba(88,166,255,.1); color: var(--copilot); }
 
+    @keyframes ctxShake {
+      0%, 100% { transform: translateX(0); }
+      20%       { transform: translateX(-5px); }
+      40%       { transform: translateX(5px); }
+      60%       { transform: translateX(-4px); }
+      80%       { transform: translateX(4px); }
+    }
+    .context-bar.ctx-required {
+      outline: 2px solid var(--danger);
+      outline-offset: -2px;
+      animation: ctxShake 0.45s ease;
+    }
+
     /* ── Message list ───────────────────────────────────────────────────── */
     .messages {
       flex: 1;
@@ -1089,6 +1102,19 @@ function appendTypingIndicator() {
 async function applyAction(action, btn) {
   if (!onshapeCtx) {
     showToast('Load an Onshape context first (paste a URL or enter IDs, then click "Load context").', 'error', 5000);
+
+    // Visually direct the user to the context bar so the requirement is
+    // impossible to miss: shake it, add an inline error status, and focus the
+    // URL field.
+    const bar = document.querySelector('.context-bar');
+    if (bar) {
+      bar.classList.remove('ctx-required'); // reset in case it's mid-animation
+      void bar.offsetWidth;                 // force reflow so animation restarts
+      bar.classList.add('ctx-required');
+      setTimeout(() => bar.classList.remove('ctx-required'), 600);
+    }
+    setCtxStatus('err', '✗ Context required — paste a URL then click "Load context"');
+    inputOnshapeUrl.focus();
     return;
   }
 

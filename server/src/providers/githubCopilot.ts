@@ -325,6 +325,19 @@ export class GitHubCopilotProvider extends BaseProvider {
 
     const copilotErrorText = await resp.text();
 
+    // Some models (e.g. gpt-5.3-codex) are not accessible via the Copilot
+    // /chat/completions endpoint but ARE available on GitHub Models.
+    // Detect this specific error code and transparently retry via GitHub Models.
+    let copilotErrorBody: { error?: { code?: string } } = {};
+    try {
+      copilotErrorBody = JSON.parse(copilotErrorText);
+    } catch {
+      // not JSON — fall through to generic error
+    }
+    if (copilotErrorBody.error?.code === "unsupported_api_for_model") {
+      return this.chatViaGithubModels(githubToken, agent.model, messages, systemPrompt);
+    }
+
     throw new Error(`GitHub Copilot API error ${resp.status}: ${copilotErrorText}`);
   }
 }
