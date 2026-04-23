@@ -62,7 +62,31 @@ router.post("/apply", async (req: Request, res: Response) => {
           res.status(400).json({ error: "action.payload.script is required for featurescript actions." });
           return;
         }
+        // defineFeature() only declares a reusable feature *type*; it never
+        // instantiates geometry. The /featurescript eval endpoint is also
+        // read-only — Onshape reverts all context changes after evaluation.
+        // Both conditions mean nothing will appear in the Part Studio.
+        if (/\bdefineFeature\s*\(/.test(script)) {
+          res.status(400).json({
+            error:
+              "The FeatureScript action used 'defineFeature', which only declares a feature type " +
+              "without creating any geometry. Use action type 'addFeature' with an Onshape feature " +
+              "specification instead to persistently add features to the Part Studio.",
+          });
+          return;
+        }
         result = await executeFeatureScript(ctx, script);
+        break;
+      }
+
+      case "addFeature": {
+        // Payload must be a valid Onshape POST /features request body,
+        // e.g. { "feature": { "type": "BTMFeature-134", "featureType": "newExtrude", ... } }
+        if (!action.payload || typeof action.payload !== "object") {
+          res.status(400).json({ error: "action.payload must be an Onshape feature spec object for addFeature actions." });
+          return;
+        }
+        result = await addFeature(ctx, action.payload);
         break;
       }
 
