@@ -28,13 +28,69 @@ The payload must be a valid Onshape POST /features request body.
 Use "addFeature" for ALL geometry-creation tasks (sketches, extrudes, fillets, etc.).
 Do NOT use "featurescript" for geometry creation — it is read-only.
 
-Example — add an extrude feature (assumes a sketch already exists):
+SKETCH CREATION RULES — READ CAREFULLY:
+1. Every sketch feature MUST include a "featureId" field (a short unique string you choose,
+   e.g. "oscar_sketch_1"). This ID is required so that dependent features (extrudes, etc.)
+   can reference the sketch reliably.
+2. The sketch MUST include a "sketchPlane" parameter that references a valid plane using
+   BTMDefaultPlaneQuery-1020 for standard planes (TOP, FRONT, RIGHT) or, for an existing
+   plane/face from the feature tree, use BTMIndividualQuery-138 with the featureId from
+   the feature tree context.
+3. Sketch entity geometry values (radius, coordinates) use SI units — METRES, not millimetres.
+   Example: a 5 mm radius circle has "radius": 0.005.
+4. Each sketch entity MUST have a unique "entityId" string.
+
+SKETCH→EXTRUDE LINKAGE RULE:
+When you generate both a sketch and an extrude that depends on it:
+- Set "featureId" in the sketch payload to a chosen string (e.g. "oscar_sketch_1").
+- In the extrude's BTMIndividualSketchRegionQuery-140, set "featureId" to that SAME string.
+- If the sketch already exists in the document (visible in the feature tree context below),
+  use its "featureId" value from the feature tree — do NOT invent a new one.
+
+Example — create a circle sketch on the Top plane then extrude it:
 \`\`\`json
 {
   "actions": [
     {
       "type": "addFeature",
-      "label": "Extrude sketch to 50 mm",
+      "label": "Sketch circle Ø10 mm on Top plane",
+      "payload": {
+        "feature": {
+          "btType": "BTMFeature-134",
+          "featureType": "newSketch",
+          "name": "Sketch 1",
+          "featureId": "oscar_sketch_1",
+          "suppressed": false,
+          "parameters": [
+            {
+              "btType": "BTMParameterQueryList-148",
+              "parameterId": "sketchPlane",
+              "queries": [
+                { "btType": "BTMDefaultPlaneQuery-1020", "plane": "TOP" }
+              ]
+            }
+          ],
+          "entities": [
+            {
+              "btType": "BTMSketchCurve-4",
+              "entityId": "circle_1",
+              "geometry": {
+                "btType": "BTCurveGeometryCircle-115",
+                "radius": 0.005,
+                "xCenter": 0,
+                "yCenter": 0,
+                "xDir": { "x": 1, "y": 0, "z": 0 },
+                "yDir": { "x": 0, "y": 1, "z": 0 }
+              }
+            }
+          ],
+          "constraints": []
+        }
+      }
+    },
+    {
+      "type": "addFeature",
+      "label": "Extrude sketch to 20 mm",
       "payload": {
         "feature": {
           "btType": "BTMFeature-134",
@@ -44,8 +100,56 @@ Example — add an extrude feature (assumes a sketch already exists):
           "parameters": [
             {
               "btType": "BTMParameterQueryList-148",
-              "queries": [{ "btType": "BTMIndividualSketchRegionQuery-140", "featureId": "sketch1" }],
-              "parameterId": "entities"
+              "parameterId": "entities",
+              "queries": [
+                { "btType": "BTMIndividualSketchRegionQuery-140", "featureId": "oscar_sketch_1" }
+              ]
+            },
+            {
+              "btType": "BTMParameterEnum-145",
+              "value": "BLIND",
+              "enumName": "BoundingType",
+              "parameterId": "endBound"
+            },
+            {
+              "btType": "BTMParameterQuantity-147",
+              "expression": "20 mm",
+              "parameterId": "depth"
+            },
+            {
+              "btType": "BTMParameterEnum-145",
+              "value": "NEW",
+              "enumName": "NewBodyOperationType",
+              "parameterId": "operationType"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
+\`\`\`
+
+Example — add an extrude of an EXISTING sketch (featureId taken from the feature tree context):
+\`\`\`json
+{
+  "actions": [
+    {
+      "type": "addFeature",
+      "label": "Extrude existing sketch to 50 mm",
+      "payload": {
+        "feature": {
+          "btType": "BTMFeature-134",
+          "featureType": "newExtrude",
+          "name": "Extrude 1",
+          "suppressed": false,
+          "parameters": [
+            {
+              "btType": "BTMParameterQueryList-148",
+              "parameterId": "entities",
+              "queries": [
+                { "btType": "BTMIndividualSketchRegionQuery-140", "featureId": "<featureId from feature tree>" }
+              ]
             },
             {
               "btType": "BTMParameterEnum-145",
