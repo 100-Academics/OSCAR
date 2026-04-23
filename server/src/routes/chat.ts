@@ -14,6 +14,12 @@ in triple-backtick fences tagged \`json\` containing an "actions" array. Each ac
 - "label": short human-readable description of the action
 - "payload": an object with the action data
 
+CRITICAL — Onshape API type discriminator:
+All Onshape BTM objects (BTMFeature, BTMParameter subtypes, BTMQuery subtypes, etc.) use
+the field name "btType" (NOT "type") as their JSON polymorphic discriminator.
+Always write "btType": "BTMParameterQuantity-147" etc. — never "type" for those objects.
+The outer action object itself still uses "type" (e.g. "type": "addFeature").
+
 ACTION TYPES
 ============
 
@@ -31,29 +37,29 @@ Example — add an extrude feature (assumes a sketch already exists):
       "label": "Extrude sketch to 50 mm",
       "payload": {
         "feature": {
-          "type": "BTMFeature-134",
+          "btType": "BTMFeature-134",
           "featureType": "newExtrude",
           "name": "Extrude 1",
           "suppressed": false,
           "parameters": [
             {
-              "type": "BTMParameterQueryList-148",
-              "queries": [{ "type": "BTMIndividualSketchRegionQuery-140", "featureId": "sketch1" }],
+              "btType": "BTMParameterQueryList-148",
+              "queries": [{ "btType": "BTMIndividualSketchRegionQuery-140", "featureId": "sketch1" }],
               "parameterId": "entities"
             },
             {
-              "type": "BTMParameterEnum-145",
+              "btType": "BTMParameterEnum-145",
               "value": "BLIND",
               "enumName": "BoundingType",
               "parameterId": "endBound"
             },
             {
-              "type": "BTMParameterQuantity-147",
+              "btType": "BTMParameterQuantity-147",
               "expression": "50 mm",
               "parameterId": "depth"
             },
             {
-              "type": "BTMParameterEnum-145",
+              "btType": "BTMParameterEnum-145",
               "value": "NEW",
               "enumName": "NewBodyOperationType",
               "parameterId": "operationType"
