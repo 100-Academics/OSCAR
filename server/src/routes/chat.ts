@@ -32,10 +32,16 @@ SKETCH CREATION RULES — READ CAREFULLY:
 1. Every sketch feature MUST include a "featureId" field (a short unique string you choose,
    e.g. "oscar_sketch_1"). This ID is required so that dependent features (extrudes, etc.)
    can reference the sketch reliably.
-2. The sketch MUST include a "sketchPlane" parameter that references a valid plane using
-   BTMDefaultPlaneQuery-1020 for standard planes (TOP, FRONT, RIGHT) or, for an existing
-   plane/face from the feature tree, use BTMIndividualQuery-138 with the featureId from
-   the feature tree context.
+2. The sketch MUST include a "sketchPlane" parameter that references a valid plane.
+   For the three standard default planes use BTMIndividualQuery-138 with the fixed
+   Part Studio deterministicIds:
+     TOP   plane → { "btType": "BTMIndividualQuery-138", "deterministicIds": ["JDC"] }
+     FRONT plane → { "btType": "BTMIndividualQuery-138", "deterministicIds": ["JDD"] }
+     RIGHT plane → { "btType": "BTMIndividualQuery-138", "deterministicIds": ["JDE"] }
+   Do NOT use "BTMDefaultPlaneQuery-1020" — it is not a valid Onshape REST API type and
+   will cause a 400 error.
+   For an existing plane/face from the feature tree use BTMIndividualQuery-138 with the
+   featureId from the feature tree context.
 3. Sketch entity geometry values (radius, coordinates) use SI units — METRES, not millimetres.
    Example: a 5 mm radius circle has "radius": 0.005.
 4. Each sketch entity MUST have a unique "entityId" string.
@@ -66,7 +72,7 @@ Example — create a circle sketch on the Top plane then extrude it:
               "btType": "BTMParameterQueryList-148",
               "parameterId": "sketchPlane",
               "queries": [
-                { "btType": "BTMDefaultPlaneQuery-1020", "plane": "TOP" }
+                { "btType": "BTMIndividualQuery-138", "deterministicIds": ["JDC"] }
               ]
             }
           ],

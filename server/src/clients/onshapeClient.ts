@@ -102,6 +102,43 @@ export async function executeFeatureScript(
   return resp.json();
 }
 
+/** deterministicIds for the three default Part Studio planes. */
+const DEFAULT_PLANE_IDS: Record<string, string> = {
+  TOP: "JDC",
+  FRONT: "JDD",
+  RIGHT: "JDE",
+};
+
+/**
+ * Recursively replace any legacy BTMDefaultPlaneQuery-1020 objects (which Onshape's
+ * REST API does not recognise) with the correct BTMIndividualQuery-138 form.
+ */
+function fixDefaultPlaneQueries(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(fixDefaultPlaneQueries);
+  }
+  if (value !== null && typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    if (obj["btType"] === "BTMDefaultPlaneQuery-1020") {
+      const plane = String(obj["plane"] ?? "").toUpperCase();
+      const deterministicId = DEFAULT_PLANE_IDS[plane];
+      if (!deterministicId) {
+        throw new Error(
+          `Unknown default plane "${obj["plane"]}". ` +
+          `Valid values are: ${Object.keys(DEFAULT_PLANE_IDS).join(", ")}.`
+        );
+      }
+      return { btType: "BTMIndividualQuery-138", deterministicIds: [deterministicId] };
+    }
+    const fixed: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(obj)) {
+      fixed[k] = fixDefaultPlaneQueries(v);
+    }
+    return fixed;
+  }
+  return value;
+}
+
 /**
  * Add a feature to a Part Studio.
  * `featureSpec` should match the Onshape features API schema.
@@ -115,10 +152,12 @@ export async function addFeature(
   const eid = validateId(ctx.elementId, "elementId");
   const url = `${ONSHAPE_BASE}/partstudios/d/${did}/w/${wid}/e/${eid}/features`;
 
+  const sanitized = fixDefaultPlaneQueries(featureSpec) as Record<string, unknown>;
+
   const resp = await fetch(url, {
     method: "POST",
     headers: authHeaders(),
-    body: JSON.stringify(featureSpec),
+    body: JSON.stringify(sanitized),
   });
 
   if (!resp.ok) {
