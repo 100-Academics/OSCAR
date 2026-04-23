@@ -24,7 +24,7 @@ export interface OnshapeContext {
 }
 
 export interface OnshapeAction {
-  type: "featurescript" | "rename" | "suppress" | "custom";
+  type: "featurescript" | "addFeature" | "rename" | "suppress" | "custom";
   label: string;
   payload: Record<string, unknown>;
 }

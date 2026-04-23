@@ -560,9 +560,10 @@
       max-width: 280px;
     }
 
-    .toast.success { border-left: 3px solid #3fb950; }
-    .toast.error   { border-left: 3px solid var(--danger); }
-    .toast.info    { border-left: 3px solid var(--copilot); }
+    .toast.success  { border-left: 3px solid #3fb950; }
+    .toast.warning  { border-left: 3px solid #d29922; }
+    .toast.error    { border-left: 3px solid var(--danger); }
+    .toast.info     { border-left: 3px solid var(--copilot); }
 
     @keyframes fadeInUp {
       from { opacity: 0; transform: translateY(8px); }
@@ -1166,7 +1167,11 @@ async function applyAction(action, btn) {
 
     btn.classList.add('applied');
     btn.textContent = '✓ Applied';
-    showToast(`Action "${action.label}" applied successfully!`, 'success');
+    if (data.warning) {
+      showToast(`Action "${action.label}" applied — ${data.warning}`, 'warning', 6000);
+    } else {
+      showToast(`Action "${action.label}" applied successfully!`, 'success');
+    }
   } catch (err) {
     btn.textContent = '✗ Failed';
     btn.style.background = 'var(--danger)';
