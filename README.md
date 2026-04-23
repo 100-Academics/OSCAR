@@ -57,9 +57,13 @@ npm run build && npm start   # production
 
 Server starts on `http://localhost:3000`.
 
-### 6. Open OSCAR locally (recommended, 100% free)
+### 6. Open OSCAR
 
-Open **[http://localhost:3000](http://localhost:3000)** in your browser — the server now serves the OSCAR UI directly at its root.
+The server serves the OSCAR UI directly at its root, so just open the server URL in your browser — no separate frontend hosting needed.
+
+**Local:** Open **[http://localhost:3000](http://localhost:3000)**
+
+**GitHub Codespaces:** Click **Open in Browser** on the forwarded port 3000 in the Ports tab. The UI automatically connects to the correct backend URL — no extra configuration needed.
 
 In OSCAR, paste a full Onshape workspace URL (for example `https://cad.onshape.com/documents/55282c74bcea380828de0e51/w/dbddf877c059c056e8d4986b/e/4c596dc1de28e1258a125bf0`) and click **Load context**.
 Then chat with the model and use **Apply to Onshape** to push approved actions to the real Onshape document.

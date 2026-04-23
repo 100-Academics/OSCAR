@@ -702,8 +702,11 @@
 // OSCAR Frontend — Onshape ↔ GitHub Copilot bridge
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-// Backend base URL — set window.OSCAR_API_URL before this script to override
-const API_BASE = (window.OSCAR_API_URL || 'http://localhost:3000').replace(/\/$/, '');
+// Backend base URL — set window.OSCAR_API_URL before this script to override.
+// Defaults to the current page origin so the client works without configuration
+// in any environment: local dev (http://localhost:3000), GitHub Codespaces
+// (https://<name>-3000.preview.app.github.dev), or any hosted deployment.
+const API_BASE = (window.OSCAR_API_URL || window.location.origin).replace(/\/$/, '');
 
 // ── State ─────────────────────────────────────────────────────────────────
 let allAgents     = [];
